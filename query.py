@@ -5,6 +5,10 @@ from llama_index.llms.ollama import Ollama
 from llama_index.embeddings.ollama import OllamaEmbedding
 from config import config_embedding, config_llm, get_vector_store
 
+from llama_index.retrievers.bm25 import BM25Retriever
+from llama_index.core.retrievers import QueryFusionRetriever
+from llama_index.core.query_engine import RetrieverQueryEngine
+
 import time
 
 def get_query_engine():
@@ -14,9 +18,31 @@ def get_query_engine():
 
     # connnect to Chroma db, rebuilds index
     vector_store = get_vector_store()
-    index = VectorStoreIndex.from_vector_store(vector_store)
+    # index = VectorStoreIndex.from_vector_store(vector_store)
+    storage_context = StorageContext.from_defaults(
+        persist_dir="storage", vector_store=vector_store
+    )
+    index = load_index_from_storage(storage_context)
+
     # define top-k of chunks retrieved per query
-    return index.as_query_engine(similarity_top_k=2)
+    vector_retriever = index.as_retriever(similarity_top_k=8)
+    
+    nodes = list(index.docstore.docs.values())
+    bm25_retriever = BM25Retriever.from_defaults(
+        docstore=index.docstore,
+        similarity_top_k=5,
+    )
+
+    # this top_k actually reaches the LLM, number of citations logged
+    retriever = QueryFusionRetriever(
+        [vector_retriever, bm25_retriever],
+        similarity_top_k=4,
+        num_queries=1,
+        use_async=True,
+        verbose=True,
+    )
+
+    return RetrieverQueryEngine.from_args(retriever)
 
 # format and print citation details
 def print_citations(source_nodes):

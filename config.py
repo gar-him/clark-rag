@@ -2,23 +2,31 @@ import os
 
 import chromadb
 
+from dotenv import load_dotenv
 from llama_index.core import Settings
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.llms.ollama import Ollama
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.vector_stores.chroma import ChromaVectorStore
+from llama_index.retrievers.bm25 import BM25Retriever
+from llama_index.core.retrievers import QueryFusionRetriever
+from llama_index.core.query_engine import RetrieverQueryEngine
 
+
+load_dotenv()
 
 # --- Embeddings: stay local -------------------------------------------------
 # Embedding models are small enough to run locally (and embedding models aren't available in Ollama Cloud)
-DEFAULT_EMBED_MODEL = "nomic-embed-text"
+
+OLLAMA_API_KEY=os.getenv("OLLAMA_API_KEY", "")
+# DEFAULT_EMBED_MODEL = "nomic-embed-text"
+DEFAULT_EMBED_MODEL = "qwen3-embedding:0.6b"
 DEFAULT_EMBED_BASE_URL = "http://localhost:11434"
 
 # --- LLM: route through Ollama Cloud ----------------------------------------
 # NOTE: "qwen2.5:3b-instruct" was used for testing, sized for my local hardware (NVIDIA GTX 970).
-# Cloud model IDs are different — check the current catalog at: https://ollama.com/api/tags
 
-DEFAULT_LLM_MODEL = "gpt-oss:20b"
+DEFAULT_LLM_MODEL = "nemotron-3-nano:30b"
 OLLAMA_CLOUD_HOST = "https://ollama.com"
 
 DEFAULT_REQUEST_TIMEOUT = 360.0
